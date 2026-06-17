@@ -20,8 +20,8 @@ tex_ceiling = load_texture('Textures/potolock.jpg') or 'white_cube'
 tex_door = load_texture('Textures/door.png') or 'white_cube'
 tex_door_open = load_texture('Textures/door_open.png') or 'white_cube'
 
-scene.ambient_color = color.rgb(5, 5, 5)
-scene.fog_density = 0.08
+scene.ambient_color = color.black
+scene.fog_density = 0.12
 scene.fog_color = color.black
 
 Entity(model='plane', collider='box', scale=150, texture=tex_floor, texture_scale=(30, 30), position=(75, 0, 75), shadows=True)
@@ -31,9 +31,9 @@ sound_ambient = Audio('Music and Sounds/Stone Abyss', volume=0.5, loop=False, au
 sound_key = Audio('Music and Sounds/Key_up', volume=0.7, autoplay=False, loop=False)
 step_sound = Audio('Music and Sounds/echo-footsteps', autoplay=False, loop=False)
 
-vignette1 = Entity(parent=camera.ui, model='quad', texture='Textures/fog3.png', scale=(1.8, 1.5), color=color.white, always_on_top=True)
-vignette3 = Entity(parent=camera.ui, model='quad', texture='Textures/inv.png', scale=(0.5, 0.11), position=(-0.64, -0.45, 0), color=color.white, always_on_top=True)
-key_icon = Entity(parent=camera.ui, model='quad', texture='Textures/key.png', scale=(0.1, 0.1), position=(-0.83, -0.45, -0.1), visible=False, always_on_top=True)
+vignette1 = Entity(parent=camera.ui, model='quad', texture='Textures/fog3.png', scale=(1.8, 1.5), color=color.white, always_on_top=True, transparent=True)
+vignette3 = Entity(parent=camera.ui, model='quad', texture='Textures/inv.png', scale=(0.5, 0.11), position=(-0.64, -0.45, 0), color=color.white, always_on_top=True, transparent=True)
+key_icon = Entity(parent=camera.ui, model='quad', texture='Textures/key.png', scale=(0.1, 0.1), position=(-0.83, -0.45, -0.1), visible=False, always_on_top=True, transparent=True)
 crosshair = None
 
 timer_text = Text(text='Время: 0.0 с', position=(-0.64, 0.45), scale=1.4, color=color.white)
@@ -127,7 +127,7 @@ def load_generated_level(seed, width=21, height=21):
     for z in range(height):
         for x in range(width):
             if maze[z][x]:
-                Entity(parent=level_parent, model='cube', collider='box', position=((x + 0.5) * 3, 2.25, (z + 0.5) * 3), scale=(3, 4.5, 3), texture=tex_wall, shadows=True, texture_scale=(3, 3))
+                Entity(parent=level_parent, model='cube', collider='box', position=((x + 0.5) * 3, 2.25, (z + 0.5) * 3), scale=(3, 4.5, 3), texture=tex_wall, shadows=True, texture_scale=(4, 4))
     
     position_player = ((1 + 0.5) * 3, 1.5, (1 + 0.5) * 3)
     
