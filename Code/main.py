@@ -3,11 +3,6 @@ from ursina.prefabs.first_person_controller import FirstPersonController
 import os
 import ast
 import time
-from ursina import *
-from ursina.prefabs.first_person_controller import FirstPersonController
-import os
-import ast
-import time
 import random
 
 app = Ursina()
