@@ -1,38 +1,31 @@
-from ursina import destroy
-from ursina import destroy
 from ursina import *
 from ursina.prefabs.first_person_controller import FirstPersonController
 import os
 import ast
 import time
+from ursina import *
+from ursina.prefabs.first_person_controller import FirstPersonController
+import os
+import ast
+import time
+import random
 
 app = Ursina()
 window.color = color.black
 position_player = (0, 0, 0)
 
-wall_tex = load_texture('Textures/wall.jpg')
-floor_tex = load_texture('Textures/floor.jpg')
-ceiling_tex = load_texture('Textures/potolock.jpg')
-door_texture = load_texture('Textures/door.png')
-door_open_texture = load_texture('Textures/door_open.png')
-
-if not wall_tex:
-    wall_tex = 'white_cube'
-if not floor_tex:
-    floor_tex = 'white_cube'
-if not ceiling_tex:
-    ceiling_tex = 'white_cube'
-if not door_texture:
-    door_texture = 'white_cube'
-if not door_open_texture:
-    door_open_texture = 'white_cube'
+tex_wall = load_texture('Textures/wall.jpg') or 'white_cube'
+tex_floor = load_texture('Textures/floor.jpg') or 'white_cube'
+tex_ceiling = load_texture('Textures/potolock.jpg') or 'white_cube'
+tex_door = load_texture('Textures/door.png') or 'white_cube'
+tex_door_open = load_texture('Textures/door_open.png') or 'white_cube'
 
 scene.ambient_color = color.rgb(5, 5, 5)
 scene.fog_density = 0.08
 scene.fog_color = color.black
 
-Entity(model='plane', collider='box', scale=150, texture=floor_tex, texture_scale=(50, 50), position=(75, 0, 75), shadows=True)
-Entity(model='plane', collider='box', scale=150, texture=ceiling_tex, texture_scale=(50, 50), position=(75, 4.5, 75), rotation_x=180, shadows=True)
+Entity(model='plane', collider='box', scale=150, texture=tex_floor, texture_scale=(25, 25), position=(75, 0, 75), shadows=True)
+Entity(model='plane', collider='box', scale=150, texture=tex_ceiling, texture_scale=(25, 25), position=(75, 4.5, 75), rotation_x=180, shadows=True)
 
 sound_ambient = Audio('Music and Sounds/Stone Abyss', volume=0.5, loop=False, autoplay=True)
 sound_key = Audio('Music and Sounds/Key_up', volume=0.7, autoplay=False, loop=False)
@@ -57,12 +50,12 @@ exit_door = None
 main_menu = Entity(parent=camera.ui, enabled=True)
 end_menu = Entity(parent=camera.ui, enabled=False)
 
-main_bg = Sprite(texture='Textures/wall.jpg', parent=main_menu, scale=(1.8, 1), unlit=True)
+main_bg = Sprite(texture=tex_wall, parent=main_menu, scale=(1.8, 1), unlit=True)
 main_title = Text(text='ТАЙНА ТЕМНОГО ЛАБИРИНТА', parent=main_menu, y=0.3, origin=(0, 0), scale=3, color=color.red)
 start_btn = Button(text='ИГРАТЬ', parent=main_menu, y=0, scale=(0.3, 0.08), color=color.gray, on_click=lambda: start_game())
 exit_btn = Button(text='ВЫХОД', parent=main_menu, y=-0.1, scale=(0.3, 0.08), color=color.dark_gray, on_click=application.quit)
 
-end_bg = Sprite(texture='Textures/potolock.jpg', parent=end_menu, scale=(1.8, 1), unlit=True)
+end_bg = Sprite(texture=tex_ceiling, parent=end_menu, scale=(1.8, 1), unlit=True)
 restart_btn = Button(text='ИГРАТЬ СНОВА', parent=end_menu, y=-0.1, scale=(0.3, 0.08), color=color.orange, on_click=lambda: restart_game())
 
 def load_level():
@@ -86,45 +79,30 @@ def load_level():
             if t == 'spawn':
                 position_player = (world_x, 1.5, world_z)
             elif t == 'exit':
-                exit_door = Entity(model='cube', collider='box', position=(world_x, 2.25, world_z), scale=(3, 4.5, 3), texture=door_texture, shadows=True)
+                exit_door = Entity(model='cube', collider='box', position=(world_x, 2.25, world_z), scale=(3, 4.5, 3), texture=tex_door, shadows=True)
             elif t == 'key':
                 k = Entity(model='quad', texture='Textures/key.png', position=(world_x, 1.5, world_z), scale=(1, 1), billboard=True, double_sided=True)
                 keys_in_world.append(k)
             elif t == 'wall':
-                Entity(model='cube', collider='box', position=(world_x, 2.25, world_z), scale=(3, 4.5, 3), texture=wall_tex, texture_scale=(2, 2), shadows=True)
-
-import random
+                Entity(model='cube', collider='box', position=(world_x, 2.25, world_z), scale=(3, 4.5, 3), texture=tex_wall, shadows=True)
 
 def generate_maze(width, height, seed):
-    random.seed(seed)
-    
-    # Сетка: True = стена, False = проход
+    rng = random.Random(seed)
     maze = [[True] * width for _ in range(height)]
     
-    # Стартуем с клетки (1, 1)
-    stack = [(1, 1)]
-    maze[1][1] = False
-    
-    while stack:
-        x, y = stack[-1]
-        # Соседи через одну клетку (чтобы стены оставались между проходами)
-        neighbors = []
-        for dx, dy in [(0, -2), (0, 2), (-2, 0), (2, 0)]:
+    def carve(x, y):
+        maze[y][x] = False
+        dirs = [(0, -2), (0, 2), (-2, 0), (2, 0)]
+        rng.shuffle(dirs)
+        
+        for dx, dy in dirs:
             nx, ny = x + dx, y + dy
             if 0 < nx < width - 1 and 0 < ny < height - 1 and maze[ny][nx]:
-                neighbors.append((nx, ny, dx, dy))
-        
-        if neighbors:
-            nx, ny, dx, dy = random.choice(neighbors)
-            # Убираем стену между текущей и соседней клеткой
-            maze[y + dy // 2][x + dx // 2] = False
-            maze[ny][nx] = False
-            stack.append((nx, ny))
-        else:
-            stack.pop()  # тупик — откатываемся
-    
-    return maze
+                maze[y + dy // 2][x + dx // 2] = False
+                carve(nx, ny)
 
+    carve(1, 1)
+    return maze
 
 def load_generated_level(seed, width=21, height=21):
     global position_player, exit_door
@@ -136,21 +114,12 @@ def load_generated_level(seed, width=21, height=21):
             world_x = (x + 0.5) * 3
             world_z = (z + 0.5) * 3
             
-            if maze[z][x]:  # стена
-                Entity(model='cube', collider='box',
-                       position=(world_x, 2.25, world_z),
-                       scale=(3, 4.5, 3), texture=wall_tex,
-                       texture_scale=(2, 2), shadows=True)
+            if maze[z][x]:
+                Entity(model='cube', collider='box', position=(world_x, 2.25, world_z), scale=(3, 4.5, 3), texture=tex_wall, shadows=True)
     
-    # Спавн в (1,1), выход в дальнем углу
     position_player = ((1 + 0.5) * 3, 1.5, (1 + 0.5) * 3)
-    
-    # Ищем самую дальнюю проходимую клетку для выхода
     ex, ez = width - 2, height - 2
-    exit_door = Entity(model='cube', collider='box',
-                       position=((ex + 0.5) * 3, 2.25, (ez + 0.5) * 3),
-                       scale=(3, 4.5, 3), texture=door_texture, shadows=True)
-
+    exit_door = Entity(model='cube', collider='box', position=((ex + 0.5) * 3, 2.25, (ez + 0.5) * 3), scale=(3, 4.5, 3), texture=tex_door, shadows=True)
 
 player = FirstPersonController(position=position_player, speed=10, jump_height=0)
 player.enabled = False
@@ -161,6 +130,10 @@ player_light = PointLight(parent=player, position=(0, 1, 0), color=color.rgb(220
 
 def start_game():
     global level_start_time, crosshair
+    
+    if exit_door is None:
+        load_generated_level(random.randint(1, 1000))
+        player.position = position_player
 
     main_menu.enabled = False
     player.enabled = True
@@ -175,7 +148,6 @@ def start_game():
 
 def restart_game():
     global level_completed, has_key, level_start_time
-
     level_completed = False
     has_key = False
     key_icon.visible = False
@@ -192,17 +164,15 @@ def restart_game():
         k.enabled = True
 
     if exit_door:
-        exit_door.texture = door_texture
+        exit_door.texture = tex_door
         exit_door.collider = 'box'
 
     sound_ambient.play()
 
 def complete_level():
     global level_completed
-
     if level_completed:
         return
-
     level_completed = True
     elapsed = time.perf_counter() - level_start_time
     finish_text.text = f'Уровень пройден за {elapsed:.1f} сек'
@@ -217,7 +187,6 @@ def complete_level():
 
 def update():
     global has_key, countdown_start_time
-
     if main_menu.enabled or end_menu.enabled:
         return
 
@@ -267,13 +236,10 @@ def input(key):
     if key == 'e' or key == 'left mouse down':
         if exit_door and distance(player.position, exit_door.position) < 4:
             if has_key:
-                exit_door.texture = door_open_texture
                 exit_door.collider = None
+                exit_door.texture = tex_door_open
                 print('Дверь открыта!')
             else:
                 print('Нужен ключ!')
-
-load_generated_level(seed=123451231232131312)
-
 
 app.run()
