@@ -24,7 +24,7 @@ scene.ambient_color = color.rgb(5, 5, 5)
 scene.fog_density = 0.08
 scene.fog_color = color.black
 
-Entity(model='plane', collider='box', scale=150, texture=tex_floor, texture_scale=(25, 25), position=(75, 0, 75), shadows=True)
+Entity(model='plane', collider='box', scale=150, texture=tex_floor, texture_scale=(30, 30), position=(75, 0, 75), shadows=True)
 Entity(model='plane', collider='box', scale=150, texture=tex_ceiling, texture_scale=(25, 25), position=(75, 4.5, 75), rotation_x=180, shadows=True)
 
 sound_ambient = Audio('Music and Sounds/Stone Abyss', volume=0.5, loop=False, autoplay=True)
@@ -46,6 +46,7 @@ time_limit = 60.0
 level_start_time = 0.0
 countdown_start_time = 0.0
 exit_door = None
+level_parent = None
 
 main_menu = Entity(parent=camera.ui, enabled=True)
 end_menu = Entity(parent=camera.ui, enabled=False)
@@ -73,18 +74,15 @@ def load_level():
                 continue
 
             t, x, z = ast.literal_eval(line)
-            world_x = (x + 0.5) * 3
-            world_z = (z + 0.5) * 3
-
             if t == 'spawn':
-                position_player = (world_x, 1.5, world_z)
+                position_player = ((x + 0.5) * 3, 1.5, (z + 0.5) * 3)
             elif t == 'exit':
-                exit_door = Entity(model='cube', collider='box', position=(world_x, 2.25, world_z), scale=(3, 4.5, 3), texture=tex_door, shadows=True)
+                exit_door = Entity(model='cube', collider='box', position=((x + 0.5) * 3, 2.25, (z + 0.5) * 3), scale=(3, 4.5, 3), texture=tex_door, shadows=True)
             elif t == 'key':
-                k = Entity(model='quad', texture='Textures/key.png', position=(world_x, 1.5, world_z), scale=(1, 1), billboard=True, double_sided=True)
+                k = Entity(model='quad', texture='Textures/key.png', position=((x + 0.5) * 3, 1.5, (z + 0.5) * 3), scale=(1, 1), billboard=True, double_sided=True)
                 keys_in_world.append(k)
             elif t == 'wall':
-                Entity(model='cube', collider='box', position=(world_x, 2.25, world_z), scale=(3, 4.5, 3), texture=tex_wall, shadows=True)
+                Entity(model='cube', collider='box', position=((x + 0.5) * 3, 2.25, (z + 0.5) * 3), scale=(3, 4.5, 3), texture=tex_wall, shadows=True)
 
 def generate_maze(width, height, seed):
     rng = random.Random(seed)
@@ -105,21 +103,46 @@ def generate_maze(width, height, seed):
     return maze
 
 def load_generated_level(seed, width=21, height=21):
-    global position_player, exit_door
+    global position_player, exit_door, level_parent, keys_in_world
+    
+    if level_parent:
+        destroy(level_parent)
+    level_parent = Entity()
+    keys_in_world = []
     
     maze = generate_maze(width, height, seed)
     
+    possible_doors = []
+    for z in range(1, height-1):
+        if not maze[z][1]: possible_doors.append((0, z))
+        if not maze[z][width-2]: possible_doors.append((width-1, z))
+    for x in range(1, width-1):
+        if not maze[1][x]: possible_doors.append((x, 0))
+        if not maze[height-2][x]: possible_doors.append((x, height-1))
+        
+    possible_doors.sort(key=lambda p: p[0] + p[1])
+    dx, dz = random.choice(possible_doors[:4])
+    maze[dz][dx] = False
+    
     for z in range(height):
         for x in range(width):
-            world_x = (x + 0.5) * 3
-            world_z = (z + 0.5) * 3
-            
             if maze[z][x]:
-                Entity(model='cube', collider='box', position=(world_x, 2.25, world_z), scale=(3, 4.5, 3), texture=tex_wall, shadows=True)
+                Entity(parent=level_parent, model='cube', collider='box', position=((x + 0.5) * 3, 2.25, (z + 0.5) * 3), scale=(3, 4.5, 3), texture=tex_wall, shadows=True, texture_scale=(3, 3))
     
     position_player = ((1 + 0.5) * 3, 1.5, (1 + 0.5) * 3)
-    ex, ez = width - 2, height - 2
-    exit_door = Entity(model='cube', collider='box', position=((ex + 0.5) * 3, 2.25, (ez + 0.5) * 3), scale=(3, 4.5, 3), texture=tex_door, shadows=True)
+    
+    empty_cells = []
+    for z in range(height):
+        for x in range(width):
+            if not maze[z][x] and (x, z) not in ((1, 1), (dx, dz)):
+                empty_cells.append((x, z))
+                
+    if empty_cells:
+        kx, kz = random.choice(empty_cells)
+        k = Entity(parent=level_parent, model='quad', texture='Textures/key.png', position=((kx + 0.5) * 3, 1.5, (kz + 0.5) * 3), scale=(1, 1), billboard=True, double_sided=True)
+        keys_in_world.append(k)
+
+    exit_door = Entity(parent=level_parent, model='cube', collider='box', position=((dx + 0.5) * 3, 2.25, (dz + 0.5) * 3), scale=(3, 4.5, 3), texture=tex_door, shadows=True)
 
 player = FirstPersonController(position=position_player, speed=10, jump_height=0)
 player.enabled = False
@@ -132,7 +155,7 @@ def start_game():
     global level_start_time, crosshair
     
     if exit_door is None:
-        load_generated_level(random.randint(1, 1000))
+        load_generated_level(random.randint(1, 999999999))
         player.position = position_player
 
     main_menu.enabled = False
@@ -154,18 +177,13 @@ def restart_game():
     finish_text.visible = False
     end_menu.enabled = False
 
+    load_generated_level(random.randint(1, 999999999))
+
     player.position = position_player
     player.enabled = True
     mouse.locked = True
     mouse.visible = False
     level_start_time = time.perf_counter()
-
-    for k in keys_in_world:
-        k.enabled = True
-
-    if exit_door:
-        exit_door.texture = tex_door
-        exit_door.collider = 'box'
 
     sound_ambient.play()
 
