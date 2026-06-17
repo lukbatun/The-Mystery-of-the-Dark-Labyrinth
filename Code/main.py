@@ -190,7 +190,6 @@ def complete_level():
     elapsed = time.perf_counter() - level_start_time
     finish_text.text = f'Уровень пройден за {elapsed:.1f} сек'
     finish_text.visible = True
-
     end_menu.enabled = True
     player.enabled = False
     mouse.locked = False
