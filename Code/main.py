@@ -78,68 +78,8 @@ def load_level():
                 keys_in_world.append(k)
             elif t == 'wall':
                 Entity(model='cube', collider='box', position=((x + 0.5) * 3, 2.25, (z + 0.5) * 3), scale=(3, 4.5, 3), texture=tex_wall, shadows=True)
-
-def generate_maze(width, height, seed):
-    rng = random.Random(seed)
-    maze = [[True] * width for _ in range(height)]
-    
-    def carve(x, y):
-        maze[y][x] = False
-        dirs = [(0, -2), (0, 2), (-2, 0), (2, 0)]
-        rng.shuffle(dirs)
-        
-        for dx, dy in dirs:
-            nx, ny = x + dx, y + dy
-            if 0 < nx < width - 1 and 0 < ny < height - 1 and maze[ny][nx]:
-                maze[y + dy // 2][x + dx // 2] = False
-                carve(nx, ny)
-
-    carve(1, 1)
-    return maze
-
-def load_generated_level(seed, width=21, height=21):
-    global position_player, exit_door, level_parent, keys_in_world
-    
-    if level_parent:
-        destroy(level_parent)
-    level_parent = Entity()
-    keys_in_world = []
-    
-    maze = generate_maze(width, height, seed)
-    
-    possible_doors = []
-    for z in range(1, height-1):
-        if not maze[z][1]: possible_doors.append((0, z))
-        if not maze[z][width-2]: possible_doors.append((width-1, z))
-    for x in range(1, width-1):
-        if not maze[1][x]: possible_doors.append((x, 0))
-        if not maze[height-2][x]: possible_doors.append((x, height-1))
-        
-    possible_doors.sort(key=lambda p: p[0] + p[1])
-    dx, dz = random.choice(possible_doors[:4])
-    maze[dz][dx] = False
-    
-    for z in range(height):
-        for x in range(width):
-            if maze[z][x]:
-                Entity(parent=level_parent, model='cube', collider='box', position=((x + 0.5) * 3, 2.25, (z + 0.5) * 3), scale=(3, 4.5, 3), texture=tex_wall, shadows=True, texture_scale=(4, 4))
-    
-    position_player = ((1 + 0.5) * 3, 1.5, (1 + 0.5) * 3)
-    
-    empty_cells = []
-    for z in range(height):
-        for x in range(width):
-            if not maze[z][x] and (x, z) not in ((1, 1), (dx, dz)):
-                empty_cells.append((x, z))
-                
-    if empty_cells:
-        kx, kz = random.choice(empty_cells)
-        k = Entity(parent=level_parent, model='quad', texture='Textures/key.png', position=((kx + 0.5) * 3, 1.5, (kz + 0.5) * 3), scale=(1, 1), billboard=True, double_sided=True)
-        keys_in_world.append(k)
-
-    exit_door = Entity(parent=level_parent, model='cube', collider='box', position=((dx + 0.5) * 3, 2.25, (dz + 0.5) * 3), scale=(3, 4.5, 3), texture=tex_door, shadows=True)
-
 player = FirstPersonController(position=position_player, speed=10, jump_height=0)
+load_level()
 player.enabled = False
 mouse.locked = False
 mouse.visible = True
@@ -150,7 +90,6 @@ def start_game():
     global level_start_time, crosshair
     
     if exit_door is None:
-        load_generated_level(random.randint(1, 999999999))
         player.position = position_player
 
     main_menu.enabled = False
@@ -171,9 +110,6 @@ def restart_game():
     key_icon.visible = False
     finish_text.visible = False
     end_menu.enabled = False
-
-    load_generated_level(random.randint(1, 999999999))
-
     player.position = position_player
     player.enabled = True
     mouse.locked = True
