@@ -22,9 +22,10 @@ scene.fog_color = color.black
 Entity(model='plane', collider='box', scale=150, texture=tex_floor, texture_scale=(30, 30), position=(75, 0, 75), shadows=True)
 Entity(model='plane', collider='box', scale=150, texture=tex_ceiling, texture_scale=(25, 25), position=(75, 4.5, 75), rotation_x=180, shadows=True)
 
-sound_ambient = Audio('Music and Sounds/Stone Abyss', volume=0.5, loop=False, autoplay=True)
+sound_ambient = Audio('Music and Sounds/Stone Abyss', volume=1, loop=False, autoplay=True)
 sound_key = Audio('Music and Sounds/Key_up', volume=0.7, autoplay=False, loop=False)
 step_sound = Audio('Music and Sounds/echo-footsteps', autoplay=False, loop=False)
+sound_air = Audio('Music and Sounds/air', volume=0.1, autoplay=True, loop=True)
 
 vignette1 = Entity(parent=camera.ui, model='quad', texture='Textures/fog3.png', scale=(1.8, 1.5), color=color.white, always_on_top=True, transparent=True)
 vignette3 = Entity(parent=camera.ui, model='quad', texture='Textures/inv.png', scale=(0.5, 0.11), position=(-0.64, -0.45, 0), color=color.white, always_on_top=True, transparent=True)
@@ -97,6 +98,7 @@ def start_game():
     mouse.locked = True
     mouse.visible = False
     level_start_time = time.perf_counter()
+    sound_air.play()
 
     if crosshair is None:
         crosshair = Entity(parent=camera.ui, model='quad', texture='Textures/cursor.png', scale=(1, 1), color=color.white, always_on_top=True)
